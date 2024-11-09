@@ -1,29 +1,30 @@
-package com.clubhive.organizers.services.amazon.cognito;
+package com.NoBugs.cognito_login.services.amazon.cognito;
 
+import com.NoBugs.cognito_login.authentication.AuthenticationUser;
+import com.NoBugs.nobugs_exception.NoBugsException;
 import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProvider;
 import com.amazonaws.services.cognitoidp.model.AdminConfirmSignUpRequest;
 import com.amazonaws.services.cognitoidp.model.AttributeType;
 import com.amazonaws.services.cognitoidp.model.SignUpRequest;
 import com.amazonaws.services.cognitoidp.model.SignUpResult;
-import exceptions.NoBugsException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
-public class CognitoSignUpAutoConfirmService extends CognitoService{
+public class CognitoSignUpAutoConfirmService<T extends AuthenticationUser> extends CognitoService<T>{
 
     public CognitoSignUpAutoConfirmService(AWSCognitoIdentityProvider cognitoClient) {
         super(cognitoClient);
     }
 
     @Override
-    public SignUpResult signUp(String username, String password, List<AttributeType> attributes) {
+    public SignUpResult signUp(T authenticationUser, List<AttributeType> attributes) {
         SignUpRequest signUpRequest = new SignUpRequest();
         signUpRequest.setClientId(getClientId());
-        signUpRequest.setUsername(username);
-        signUpRequest.setPassword(password);
+        signUpRequest.setUsername(authenticationUser.getEmail());
+        signUpRequest.setPassword(authenticationUser.getPassword());
         signUpRequest.setUserAttributes(attributes);
 
         SignUpResult signUpResult;

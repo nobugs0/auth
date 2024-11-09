@@ -1,4 +1,4 @@
-package com.clubhive.organizers.config.amazon;
+package com.NoBugs.cognito_login.config.amazon;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;

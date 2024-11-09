@@ -1,39 +1,37 @@
-package com.clubhive.organizers.services.amazon.cognito;
+package com.NoBugs.cognito_login.services.amazon.cognito;
 
+import com.NoBugs.cognito_login.authentication.AuthenticationUser;
+import com.NoBugs.cognito_login.utils.SignUpRequest;
+import com.NoBugs.nobugs_exception.NoBugsException;
 import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProvider;
 import com.amazonaws.services.cognitoidp.model.*;
-import com.clubhive.organizers.utils.CognitoUtils;
-import com.clubhive.organizers.utils.ExceptionHandler;
-import exceptions.NoBugsException;
+
+import com.nimbusds.jwt.JWT;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.JWTParser;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.clubhive.DTO.auth.CustomerResponseDTO;
-import org.clubhive.utils.CustomJWTParser;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.text.ParseException;
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 
 @Service
 @Setter
 @Getter
 @Slf4j
-public abstract class CognitoService {
+public abstract class CognitoService<T extends AuthenticationUser> {
 
     private String poolId;
 
     private String clientId;
 
     private final AWSCognitoIdentityProvider cognitoClient;
-
-    @Autowired
-    private ExceptionHandler exceptionHandler;
-
-    private final String TEMPORAL_PASSWD = "CHTemporalPasswd123*";
-    private final String PERMANENT_PASSWD = "PermanentPassword123!"; // TO-DO: Cambiar esta pass por algun ID que devuelva google.
 
     public CognitoService(AWSCognitoIdentityProvider cognitoClient) {
         this.cognitoClient = cognitoClient;
@@ -47,23 +45,31 @@ public abstract class CognitoService {
     }
 
     public GetUserResult getUser(String accessToken) {
-        if (CustomJWTParser.isTokenExpired(accessToken)) {
+
+        if (isTokenExpired(accessToken)) {
             throw new NoBugsException("Token is expired", HttpStatus.UNAUTHORIZED);
         }
 
         GetUserRequest getUserRequest = new GetUserRequest();
         getUserRequest.setAccessToken(accessToken);
         return cognitoClient.getUser(getUserRequest);
+
     }
 
-    public InitiateAuthResult login(String username, String password) {
-        return cognitoClient.initiateAuth(CognitoUtils.createInitiateAuthRequest(clientId, username, password));
+    public InitiateAuthResult login(T authenticator) {
+        return cognitoClient.initiateAuth(
+                new InitiateAuthRequest()
+                        .withClientId(clientId)
+                        .withAuthFlow("USER_PASSWORD_AUTH")
+                        .withAuthParameters(
+                                Map.of("USERNAME", authenticator.getEmail(), "PASSWORD", authenticator.getPassword())
+                        )
+        );
     }
 
-    public abstract SignUpResult signUp(String username, String password, List<AttributeType> attributes);
+    public abstract SignUpResult signUp(T authenticator, List<AttributeType> attributes);
 
     public void confirmSignUp(String username, String confirmationCode) {
-
         ConfirmSignUpRequest confirmSignUpRequest = new ConfirmSignUpRequest();
         confirmSignUpRequest.setUsername(username);
         confirmSignUpRequest.setConfirmationCode(confirmationCode);
@@ -73,7 +79,7 @@ public abstract class CognitoService {
 
     public UpdateUserAttributesResult updateUserAttributes(String accessToken, List<AttributeType> attributes) {
 
-        if (CustomJWTParser.isTokenExpired(accessToken)) {
+        if (isTokenExpired(accessToken)) {
             throw new NoBugsException("Token is expired", HttpStatus.UNAUTHORIZED);
         }
 
@@ -85,18 +91,16 @@ public abstract class CognitoService {
     }
 
     public String forgotPasswordRequest(String username) {
-
         try {
             cognitoClient.forgotPassword(new ForgotPasswordRequest().withClientId(clientId).withUsername(username));
         } catch (Exception e) {
-            exceptionHandler.handleConfirmMailException(e);
+            throw new NoBugsException(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
 
         return "Confirmation code sent to email";
     }
 
     public boolean checkConfirmationCode(String username, String confirmationCode) {
-
         try {
             cognitoClient.confirmForgotPassword(new ConfirmForgotPasswordRequest()
                     .withPassword("NewPassword123!")
@@ -104,45 +108,43 @@ public abstract class CognitoService {
                     .withUsername(username)
                     .withConfirmationCode(confirmationCode));
         } catch (Exception e) {
-            exceptionHandler.handleConfirmMailException(e);
+            throw new NoBugsException(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
         return true;
     }
 
-    public String changePassword(String username, String newPassword) {
-
+    public String changePassword(T authenticator) {
         try {
             cognitoClient.changePassword(new ChangePasswordRequest()
                     .withPreviousPassword("NewPassword123!")
-                    .withProposedPassword(newPassword)
-                    .withAccessToken(login(username, "NewPassword123!").getAuthenticationResult().getAccessToken()
+                    .withProposedPassword(authenticator.getPassword())
+                    .withAccessToken(login(authenticator).getAuthenticationResult().getAccessToken()
                     ));
         } catch (Exception e) {
-            exceptionHandler.handleConfirmMailException(e);
+            throw new NoBugsException(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
         return "Password changed successfully";
     }
 
-    public AdminCreateUserResult signupSocialUser(CustomerResponseDTO customer) {
-
-        String passwordCustomer = CognitoUtils.generatePasswordById(customer.getDni());
+    public AdminCreateUserResult signupSocialUser(SignUpRequest signUpRequest) {
+        String passwordCustomer = signUpRequest.generatePassword();
         AdminCreateUserResult adminCreateUser;
 
         AdminCreateUserRequest createUserRequest = new AdminCreateUserRequest()
                 .withUserPoolId(this.poolId)
-                .withUsername(customer.getEmail())
+                .withUsername(signUpRequest.getEmail())
                 .withUserAttributes(
-                        new AttributeType().withName("email").withValue(customer.getEmail()),
+                        new AttributeType().withName("email").withValue(signUpRequest.getEmail()),
                         new AttributeType().withName("email_verified").withValue("true")
                 )
-                .withTemporaryPassword(TEMPORAL_PASSWD)
+                .withTemporaryPassword("")
                 .withMessageAction("SUPPRESS");
 
         adminCreateUser = cognitoClient.adminCreateUser(createUserRequest);
 
         AdminSetUserPasswordRequest setPasswordRequest = new AdminSetUserPasswordRequest()
                 .withUserPoolId(this.poolId)
-                .withUsername(customer.getEmail())
+                .withUsername(signUpRequest.getEmail())
                 .withPassword(passwordCustomer)
                 .withPermanent(true);
 
@@ -152,7 +154,26 @@ public abstract class CognitoService {
         return adminCreateUser;
     }
 
+    public static String parseSubjectJWT(String token) {
+        try {
+            JWT jwt = JWTParser.parse(token);
+            JWTClaimsSet claims = jwt.getJWTClaimsSet();
+            return claims.getSubject();
+        } catch (ParseException e) {
+            throw new NoBugsException("Invalid token", HttpStatus.UNAUTHORIZED);
+        }
+    }
 
+    public static boolean isTokenExpired(String token) {
+        try {
+            JWT jwt = JWTParser.parse(token);
+            JWTClaimsSet claims = jwt.getJWTClaimsSet();
+            Date expirationTime = claims.getExpirationTime();
 
+            return expirationTime.before(new Date());
+        } catch (ParseException e) {
+            throw new NoBugsException("Invalid token", HttpStatus.UNAUTHORIZED);
+        }
+    }
 
 }

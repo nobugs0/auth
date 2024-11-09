@@ -1,6 +1,6 @@
 package com.NoBugs.cognito_login.authentication;
 
-public interface AuthtenticationUser {
+public interface AuthenticationUser {
     String getEmail();
 
     default String getPassword(){
