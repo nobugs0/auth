@@ -15,7 +15,7 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public class LoginAuthentication<T> {
 
-    Class<T> response;
+    private final Class<T> response;
 
     public <R extends UserRepositoryImplementation<?>, A extends AuthenticationUser> AuthUser<?> login(A userAuthentication, R repository, CognitoService<A> cognitoService) {
         LoginHandler loginHandler = new LoginHandler(userAuthentication, repository);
