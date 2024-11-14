@@ -22,7 +22,6 @@ import java.util.Collections;
 
 @Slf4j
 @Service
-
 public class SocialLoginService {
 
     @Value("${google.idClient}")

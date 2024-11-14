@@ -26,7 +26,7 @@ public class SignUpRequest {
 
     public String generatePassword() {
         BCrypt.Hasher bCrypt = BCrypt.withDefaults();
-        return bCrypt.hashToString(BCrypt.MAX_COST, (prefix + getEmailPrefix() + suffix).toCharArray());
+        return bCrypt.hashToString(BCrypt.SALT_LENGTH, (prefix + getEmailPrefix() + suffix).toCharArray());
     }
 
     public String getEmail() {
