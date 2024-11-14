@@ -7,6 +7,10 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.http.HttpStatus;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
 @Getter
 @Setter
 public class SignUpRequest {
@@ -25,8 +29,23 @@ public class SignUpRequest {
     }
 
     public String generatePassword() {
-        BCrypt.Hasher bCrypt = BCrypt.withDefaults();
-        return bCrypt.hashToString(10, (prefix + getEmailPrefix() + suffix).toCharArray());
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] encodedhash = digest.digest((prefix + getEmailPrefix() + suffix).getBytes(StandardCharsets.UTF_8));
+            return bytesToHex(encodedhash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static String bytesToHex(byte[] hash) {
+        StringBuilder hexString = new StringBuilder(2 * hash.length);
+        for (byte b : hash) {
+            String hex = Integer.toHexString(0xff & b);
+            if (hex.length() == 1) hexString.append('0');
+            hexString.append(hex);
+        }
+        return hexString.toString();
     }
 
     public String getEmail() {
