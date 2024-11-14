@@ -137,7 +137,7 @@ public abstract class CognitoService<T extends AuthenticationUser> {
                         new AttributeType().withName("email").withValue(signUpRequest.getEmail()),
                         new AttributeType().withName("email_verified").withValue("true")
                 )
-                .withTemporaryPassword("")
+                .withTemporaryPassword(passwordCustomer)
                 .withMessageAction("SUPPRESS");
 
         adminCreateUser = cognitoClient.adminCreateUser(createUserRequest);
