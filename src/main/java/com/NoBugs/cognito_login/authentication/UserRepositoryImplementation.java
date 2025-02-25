@@ -15,4 +15,6 @@ public interface UserRepositoryImplementation<T extends User> {
     List<T> findAll();
 
     T findByEmail(String email);
+
+    T findBySub(String sub);
 }
