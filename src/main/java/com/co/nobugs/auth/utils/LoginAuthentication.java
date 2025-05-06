@@ -26,7 +26,7 @@ public class LoginAuthentication<T> {
 
     @Setter
     private static final class LoginHandler {
-        private AdminInitiateAuthResponse initiateAuthResult;
+        private InitiateAuthResponse initiateAuthResult;
         private AuthenticationUser userAuthentication;
         private UserRepositoryImplementation<?> repository;
 
@@ -35,16 +35,15 @@ public class LoginAuthentication<T> {
             this.repository = repository;
         }
 
-        private <A extends AuthenticationUser> AdminInitiateAuthResponse login(A userAuthentication, CognitoService<A> cognitoService) throws NoBugsException {
+        private <A extends AuthenticationUser> InitiateAuthResponse login(A userAuthentication, CognitoService<A> cognitoService) throws NoBugsException {
             try {
-                AdminInitiateAuthRequest authRequest = AdminInitiateAuthRequest.builder()
-                        .userPoolId(cognitoService.getPoolId())  // You might need to retrieve the pool ID
-                        .clientId(cognitoService.getClientId())      // Similarly for the client ID
+                InitiateAuthRequest authRequest = InitiateAuthRequest.builder()
+                        .clientId(cognitoService.getClientId())
                         .authFlow(AuthFlowType.USER_PASSWORD_AUTH)
                         .authParameters(Map.of("USERNAME", userAuthentication.getEmail(), "PASSWORD", userAuthentication.getPassword()))
                         .build();
 
-                return cognitoService.getCognitoClient().adminInitiateAuth(authRequest);
+                return cognitoService.getCognitoClient().initiateAuth(authRequest);
             } catch (Exception e) {
                 throw new NoBugsException(e.getMessage(), HttpStatus.BAD_REQUEST);
             }
