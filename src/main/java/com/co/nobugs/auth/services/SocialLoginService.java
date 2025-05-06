@@ -57,7 +57,6 @@ public class SocialLoginService {
                     .build();
 
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
             if (response.statusCode() != 200) {
                 throw new NoBugsException("Failed to validate Facebook token", HttpStatus.valueOf(response.statusCode()));
             }
