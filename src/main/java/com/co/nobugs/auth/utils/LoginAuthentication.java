@@ -40,7 +40,7 @@ public class LoginAuthentication<T> {
                 AdminInitiateAuthRequest authRequest = AdminInitiateAuthRequest.builder()
                         .userPoolId(cognitoService.getPoolId())  // You might need to retrieve the pool ID
                         .clientId(cognitoService.getClientId())      // Similarly for the client ID
-                        .authFlow(AuthFlowType.ADMIN_NO_SRP_AUTH)
+                        .authFlow(AuthFlowType.USER_PASSWORD_AUTH)
                         .authParameters(Map.of("USERNAME", userAuthentication.getEmail(), "PASSWORD", userAuthentication.getPassword()))
                         .build();
 

@@ -3,6 +3,7 @@ package com.co.nobugs.auth.services.amazon.cognito;
 import com.co.nobugs.auth.authentication.AuthenticationUser;
 import com.co.nobugs.auth.utils.SignUpRequest;
 import com.co.nobugs.nobugsexception.NoBugsException;
+import com.co.nobugs.nobugsexception.NoBugsRuntimeException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
@@ -165,7 +166,7 @@ public abstract class CognitoService<T extends AuthenticationUser> {
     }
 
 
-    public AdminCreateUserResponse signupSocialUser(SignUpRequest signUpRequest) throws NoBugsException {
+    public AdminCreateUserResponse signupSocialUser(SignUpRequest signUpRequest) {
         String passwordCustomer = signUpRequest.generatePassword();
 
         try {
@@ -196,8 +197,8 @@ public abstract class CognitoService<T extends AuthenticationUser> {
             log.info("User confirmed without forced password change.");
             return response;
 
-        } catch (CognitoIdentityProviderException e) {
-            throw new NoBugsException(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (CognitoIdentityProviderException | NoBugsException e) {
+            throw new NoBugsRuntimeException(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 

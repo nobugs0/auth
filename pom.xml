@@ -6,11 +6,11 @@
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>3.3.5</version>
-		<relativePath/> <!-- lookup parent from repository -->
+		<relativePath/> <!-- lookup parent from a repository -->
 	</parent>
 	<groupId>com.co.nobugs.auth</groupId>
 	<artifactId>auth</artifactId>
-	<version>2.0</version>
+	<version>3.0.1</version>
 	<name>auth</name>
 	<description>NoBugs Cognito Authentication Library</description>
 	<url/>
@@ -83,55 +83,50 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>aws-core</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>ses</artifactId>
 		</dependency>
-
 		<!-- Para Amazon Cognito Identity Provider -->
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>cognitoidentityprovider</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
 		</dependency>
-
 		<dependency>
 			<groupId>com.github.nobugs0</groupId>
 			<artifactId>nobugs-exception</artifactId>
 			<version>3.0.1</version>
 		</dependency>
-
 		<dependency>
 			<groupId>com.nimbusds</groupId>
 			<artifactId>nimbus-jose-jwt</artifactId>
 			<version>9.38-rc3</version>
 		</dependency>
-
 		<!-- https://mvnrepository.com/artifact/at.favre.lib/bcrypt -->
 		<dependency>
 			<groupId>at.favre.lib</groupId>
 			<artifactId>bcrypt</artifactId>
 			<version>0.10.2</version>
 		</dependency>
-
 		<dependency>
 			<groupId>org.modelmapper</groupId>
 			<artifactId>modelmapper</artifactId>
 			<version>3.0.0</version>
 		</dependency>
-
 	</dependencies>
 
 	<repositories>
