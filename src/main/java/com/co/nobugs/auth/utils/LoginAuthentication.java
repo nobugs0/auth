@@ -5,12 +5,13 @@ import com.co.nobugs.auth.authentication.AuthenticationUser;
 import com.co.nobugs.auth.authentication.UserRepositoryImplementation;
 import com.co.nobugs.auth.services.amazon.cognito.CognitoService;
 import com.co.nobugs.nobugsexception.NoBugsException;
-import com.amazonaws.services.cognitoidp.model.InitiateAuthResult;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.*;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 
+import java.util.Map;
 
 @RequiredArgsConstructor
 public class LoginAuthentication<T> {
@@ -25,7 +26,7 @@ public class LoginAuthentication<T> {
 
     @Setter
     private static final class LoginHandler {
-        private InitiateAuthResult initiateAuthResult;
+        private AdminInitiateAuthResponse initiateAuthResult;
         private AuthenticationUser userAuthentication;
         private UserRepositoryImplementation<?> repository;
 
@@ -34,9 +35,16 @@ public class LoginAuthentication<T> {
             this.repository = repository;
         }
 
-        private <A extends AuthenticationUser> InitiateAuthResult login(A userAuthentication, CognitoService<A> cognitoService) throws NoBugsException {
+        private <A extends AuthenticationUser> AdminInitiateAuthResponse login(A userAuthentication, CognitoService<A> cognitoService) throws NoBugsException {
             try {
-                return cognitoService.login(userAuthentication);
+                AdminInitiateAuthRequest authRequest = AdminInitiateAuthRequest.builder()
+                        .userPoolId(cognitoService.getPoolId())  // You might need to retrieve the pool ID
+                        .clientId(cognitoService.getClientId())      // Similarly for the client ID
+                        .authFlow(AuthFlowType.ADMIN_NO_SRP_AUTH)
+                        .authParameters(Map.of("USERNAME", userAuthentication.getEmail(), "PASSWORD", userAuthentication.getPassword()))
+                        .build();
+
+                return cognitoService.getCognitoClient().adminInitiateAuth(authRequest);
             } catch (Exception e) {
                 throw new NoBugsException(e.getMessage(), HttpStatus.BAD_REQUEST);
             }
@@ -45,12 +53,10 @@ public class LoginAuthentication<T> {
         private <R> AuthUser<R> loginUser(Class<R> userResponse) {
             return new AuthUser<>(
                     new ModelMapper().map(repository.findByEmail(userAuthentication.getEmail()), userResponse),
-                    initiateAuthResult.getAuthenticationResult().getAccessToken(),
-                    initiateAuthResult.getAuthenticationResult().getRefreshToken(),
-                    initiateAuthResult.getAuthenticationResult().getIdToken()
+                    initiateAuthResult.authenticationResult().accessToken(),
+                    initiateAuthResult.authenticationResult().refreshToken(),
+                    initiateAuthResult.authenticationResult().idToken()
             );
         }
-
     }
-
 }
