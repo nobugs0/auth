@@ -2,33 +2,29 @@ package com.co.nobugs.auth.utils;
 
 import com.co.nobugs.auth.authentication.AuthUser;
 import com.co.nobugs.auth.authentication.AuthenticationUser;
+import com.co.nobugs.auth.authentication.User;
 import com.co.nobugs.auth.authentication.UserRepositoryImplementation;
 import com.co.nobugs.auth.services.amazon.cognito.CognitoService;
 import com.co.nobugs.nobugsexception.NoBugsException;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.*;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
-import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 
-@RequiredArgsConstructor
-public class LoginAuthentication<T> {
+public class LoginAuthentication<T extends User> {
 
-    private final Class<T> response;
-
-    public <R extends UserRepositoryImplementation<?>, A extends AuthenticationUser> AuthUser<?> login(A userAuthentication, R repository, CognitoService<A> cognitoService) throws NoBugsException {
-        LoginHandler loginHandler = new LoginHandler(userAuthentication, repository);
+    public <R extends UserRepositoryImplementation<T>, A extends AuthenticationUser> AuthUser<T> login(A userAuthentication, R repository, CognitoService<A> cognitoService) throws NoBugsException {
+        LoginHandler<T> loginHandler = new LoginHandler<>(userAuthentication, repository);
         loginHandler.setInitiateAuthResult(loginHandler.login(userAuthentication, cognitoService));
-        return loginHandler.loginUser(response);
+        return loginHandler.loginUser();
     }
 
     @Setter
-    private static final class LoginHandler {
+    private static final class LoginHandler<R extends User> {
         private InitiateAuthResponse initiateAuthResult;
         private AuthenticationUser userAuthentication;
-        private UserRepositoryImplementation<?> repository;
+        private UserRepositoryImplementation<R> repository;
 
-        private LoginHandler(AuthenticationUser userAuthentication, UserRepositoryImplementation<?> repository) {
+        private LoginHandler(AuthenticationUser userAuthentication, UserRepositoryImplementation<R> repository) {
             this.userAuthentication = userAuthentication;
             this.repository = repository;
         }
@@ -41,9 +37,9 @@ public class LoginAuthentication<T> {
             }
         }
 
-        private <R> AuthUser<R> loginUser(Class<R> userResponse) {
+        private AuthUser<R> loginUser() {
             return new AuthUser<>(
-                    new ModelMapper().map(repository.findByEmail(userAuthentication.getEmail()), userResponse),
+                    repository.findByEmail(userAuthentication.getEmail()),
                     initiateAuthResult.authenticationResult().accessToken(),
                     initiateAuthResult.authenticationResult().refreshToken(),
                     initiateAuthResult.authenticationResult().idToken()
