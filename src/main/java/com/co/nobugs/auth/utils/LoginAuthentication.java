@@ -11,8 +11,6 @@ import lombok.Setter;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 
-import java.util.Map;
-
 @RequiredArgsConstructor
 public class LoginAuthentication<T> {
 

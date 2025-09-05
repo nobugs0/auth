@@ -1,10 +1,12 @@
 package com.co.nobugs.auth.services.amazon.cognito;
 
 import com.co.nobugs.auth.authentication.AuthenticationUser;
+import com.co.nobugs.auth.utils.CognitoSecretHash;
 import com.co.nobugs.auth.utils.SignUpRequest;
 import com.co.nobugs.nobugsexception.NoBugsException;
 import com.co.nobugs.nobugsexception.NoBugsRuntimeException;
 import lombok.RequiredArgsConstructor;
+import org.checkerframework.checker.units.qual.C;
 import org.springframework.beans.factory.annotation.Value;
 import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.*;
@@ -31,11 +33,18 @@ public abstract class CognitoService<T extends AuthenticationUser> {
 
     private final CognitoIdentityProviderClient cognitoClient;
 
-    @Value("${aws.cognito.userPoolId}")
-    private String poolId;
+    private final String poolId;
 
-    @Value("${aws.cognito.clientId}")
-    private String clientId;
+    private final String clientId;
+
+    private final String clientSecret;
+
+    public CognitoService(String poolId, String clientId, String clientSecret, CognitoIdentityProviderClient cognitoClient) {
+        this.cognitoClient = cognitoClient;
+        this.poolId = poolId;
+        this.clientId = clientId;
+        this.clientSecret = clientSecret;
+    }
 
     public GetUserResponse getUser(String accessToken) throws NoBugsException {
         if (isTokenExpired(accessToken)) {
@@ -64,7 +73,8 @@ public abstract class CognitoService<T extends AuthenticationUser> {
                 .clientId(clientId)
                 .authParameters(Map.of(
                         "USERNAME", user.getEmail(),
-                        "PASSWORD", user.getPassword()
+                        "PASSWORD", user.getPassword(),
+                        "SECRET_HASH", getSecretHash(user.getEmail())
                 ))
                 .build();
 
@@ -72,16 +82,17 @@ public abstract class CognitoService<T extends AuthenticationUser> {
     }
 
     public void confirmSignUp(String username, String confirmationCode) {
+
         ConfirmSignUpRequest request = ConfirmSignUpRequest.builder()
                 .username(username)
                 .confirmationCode(confirmationCode)
+                .secretHash(getSecretHash(username))
                 .clientId(clientId)
                 .build();
 
         cognitoClient.confirmSignUp(request);
     }
 
-    // Continúa migrando los otros métodos de forma similar...
 
     public UpdateUserAttributesResponse updateUserAttributes(String accessToken, List<AttributeType> attributes) throws NoBugsException {
         if (isTokenExpired(accessToken)) {
@@ -97,10 +108,11 @@ public abstract class CognitoService<T extends AuthenticationUser> {
     }
 
 
-    public String forgotPasswordRequest(String username) throws NoBugsException {
+    public String forgotPasswordRequest(String username ) throws NoBugsException {
         try {
             ForgotPasswordRequest request = ForgotPasswordRequest.builder()
                     .clientId(clientId)
+                    .secretHash(getSecretHash(username))
                     .username(username)
                     .build();
 
@@ -121,6 +133,7 @@ public abstract class CognitoService<T extends AuthenticationUser> {
                     .clientId(clientId)
                     .username(username)
                     .confirmationCode(confirmationCode)
+                    .secretHash(getSecretHash(username))
                     .password(signUpRequest.generatePassword())
                     .build();
 
@@ -174,9 +187,9 @@ public abstract class CognitoService<T extends AuthenticationUser> {
                     .userPoolId(poolId)
                     .username(signUpRequest.getEmail())
                     .userAttributes(
-                            software.amazon.awssdk.services.cognitoidentityprovider.model.AttributeType.builder()
+                            AttributeType.builder()
                                     .name("email").value(signUpRequest.getEmail()).build(),
-                            software.amazon.awssdk.services.cognitoidentityprovider.model.AttributeType.builder()
+                            AttributeType.builder()
                                     .name("email_verified").value("true").build()
                     )
                     .temporaryPassword(passwordCustomer)
@@ -223,6 +236,10 @@ public abstract class CognitoService<T extends AuthenticationUser> {
         } catch (ParseException e) {
             throw new NoBugsException("Invalid token", HttpStatus.UNAUTHORIZED);
         }
+    }
+
+    protected String getSecretHash(String username) {
+        return CognitoSecretHash.calculateSecretHash(clientId, clientSecret, username);
     }
 
     public abstract SignUpResponse signUp(T authenticationUser, List<AttributeType> attributes) throws NoBugsException;

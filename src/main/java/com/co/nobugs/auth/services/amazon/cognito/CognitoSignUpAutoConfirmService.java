@@ -2,20 +2,16 @@ package com.co.nobugs.auth.services.amazon.cognito;
 
 import com.co.nobugs.auth.authentication.AuthenticationUser;
 import com.co.nobugs.nobugsexception.NoBugsException;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.*;
 
 import java.util.List;
 
-@Service
-@Slf4j
 public class CognitoSignUpAutoConfirmService<T extends AuthenticationUser> extends CognitoService<T> {
 
-    public CognitoSignUpAutoConfirmService(CognitoIdentityProviderClient cognitoClient) {
-        super(cognitoClient);
+    public CognitoSignUpAutoConfirmService(String poolId, String clientId, String clientSecret, CognitoIdentityProviderClient cognitoClient) {
+        super(poolId, clientId, clientSecret, cognitoClient);
     }
 
     @Override
@@ -24,6 +20,7 @@ public class CognitoSignUpAutoConfirmService<T extends AuthenticationUser> exten
                 .clientId(getClientId())
                 .username(authenticationUser.getEmail())
                 .password(authenticationUser.getPassword())
+                .secretHash(getSecretHash(authenticationUser.getEmail()))
                 .userAttributes(attributes)
                 .build();
 
@@ -36,7 +33,7 @@ public class CognitoSignUpAutoConfirmService<T extends AuthenticationUser> exten
 
         AdminConfirmSignUpRequest adminConfirmSignUpRequest = AdminConfirmSignUpRequest.builder()
                 .userPoolId(getPoolId())
-                .username(authenticationUser.getEmail()) // NO usar getUserSub(), es el ID interno, no el username
+                .username(authenticationUser.getEmail())
                 .build();
 
         getCognitoClient().adminConfirmSignUp(adminConfirmSignUpRequest);

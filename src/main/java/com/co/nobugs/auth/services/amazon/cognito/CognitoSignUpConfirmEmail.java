@@ -9,13 +9,12 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-@Service
 public class CognitoSignUpConfirmEmail<T extends AuthenticationUser> extends CognitoService<T> {
 
     private final CognitoIdentityProviderClient cognitoClient;
 
-    public CognitoSignUpConfirmEmail(CognitoIdentityProviderClient cognitoClient) {
-        super(cognitoClient);
+    public CognitoSignUpConfirmEmail(String poolId, String clientId, String clientSecret,CognitoIdentityProviderClient cognitoClient) {
+        super(poolId, clientId, clientSecret, cognitoClient);
         this.cognitoClient = cognitoClient;
     }
 
@@ -23,6 +22,7 @@ public class CognitoSignUpConfirmEmail<T extends AuthenticationUser> extends Cog
     public SignUpResponse signUp(T authenticationUser, List<AttributeType> attributes) throws NoBugsException {
         SignUpRequest signUpRequest = SignUpRequest.builder()
                 .clientId(super.getClientId())
+                .secretHash(getSecretHash(authenticationUser.getEmail()))
                 .username(authenticationUser.getEmail())
                 .password(authenticationUser.getPassword())
                 .userAttributes(attributes)
